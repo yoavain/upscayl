@@ -3,10 +3,10 @@ import { join, parse } from "path";
 import { format } from "url";
 import { ChildProcessWithoutNullStreams, spawn } from "child_process";
 import fs from "fs";
-import sizeOf from "image-size";
 import { autoUpdater } from "electron-updater";
 import getPlatform from "./getPlatform";
 import ffmpeg from "upscayl-ffmpeg";
+import os from "os";
 
 import { execPath, modelsPath } from "./binaries";
 
@@ -421,14 +421,64 @@ ipcMain.on(commands.UPSCAYL, async (event, payload) => {
       return;
     });
 
-    // Send done comamnd when
+    // Send done command when
     upscayl?.on("close", (code) => {
-      if (failed !== true) {
-        console.log("Done upscaling");
-        mainWindow.webContents.send(
-          commands.UPSCAYL_DONE,
-          isAlpha ? outFile + ".png" : outFile
-        );
+      let exiftoolFailed = false;
+
+      if (!failed) {
+          console.log(`Copying metadata from input file to output file: '${(execPath("exiftool"))} ${[
+            "-TagsFromFile",
+            inputDir + "/" + fullfileName,
+            outFile
+        ].join(" ")}'`);
+
+        const windows = os.platform() === "win32";
+        if (windows) {
+          const exiftool = spawn(
+            execPath("exiftool"),
+            [
+              "-TagsFromFile",
+              inputDir + "/" + fullfileName,
+              outFile
+            ],
+            {
+              cwd: undefined,
+              detached: false,
+            }
+          );
+          exiftool?.stderr.on("data", (data: string) => {
+            console.log(
+              "🚀 => exiftool.stderr.on => stderr.toString()",
+              data.toString()
+            );
+            data = data.toString();
+            mainWindow.webContents.send(commands.UPSCAYL_PROGRESS, data.toString());
+            exiftoolFailed = true;
+          });
+          exiftool?.on("error", (data) => {
+            mainWindow.webContents.send(commands.UPSCAYL_PROGRESS, data.toString());
+            exiftoolFailed = true;
+            return;
+          });
+
+          if (exiftool && !exiftoolFailed) {
+            exiftool?.on("close", (code) => {
+              console.log("Done upscaling");
+              mainWindow.webContents.send(
+                commands.UPSCAYL_DONE,
+                isAlpha ? outFile + ".png" : outFile
+              );
+            })
+          }
+        }
+        else {
+          // not windows
+          console.log("Done upscaling");
+          mainWindow.webContents.send(
+            commands.UPSCAYL_DONE,
+            isAlpha ? outFile + ".png" : outFile
+          );
+        }
       }
     });
   }
