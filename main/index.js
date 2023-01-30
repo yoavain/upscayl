@@ -16,6 +16,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const path_1 = require("path");
 const url_1 = require("url");
 const child_process_1 = require("child_process");
+const dist_exiftool_1 = __importDefault(require("@mcmics/dist-exiftool"));
 const fs_1 = __importDefault(require("fs"));
 const electron_updater_1 = require("electron-updater");
 const getPlatform_1 = __importDefault(require("./getPlatform"));
@@ -326,11 +327,42 @@ electron_1.ipcMain.on(commands_1.default.UPSCAYL, (event, payload) => __awaiter(
             failed = true;
             return;
         });
-        // Send done comamnd when
+        // Send done command when
         upscayl === null || upscayl === void 0 ? void 0 : upscayl.on("close", (code) => {
-            if (failed !== true) {
-                console.log("Done upscaling");
-                mainWindow.webContents.send(commands_1.default.UPSCAYL_DONE, isAlpha ? outFile + ".png" : outFile);
+            let exiftoolFailed = false;
+            if (!failed) {
+                // Copy all tags, including thumbnail, except resolution related tags
+                const exifArgs = [
+                    "-TagsFromFile",
+                    inputDir + "/" + fullfileName,
+                    "-all",
+                    "--*width*",
+                    "--*height*",
+                    "--*resolution*",
+                    outFile
+                ];
+                console.log(`Copying metadata from input file to output file: '${dist_exiftool_1.default} ${exifArgs.join(" ")}'`);
+                const exiftoolProc = (0, child_process_1.spawn)(dist_exiftool_1.default, exifArgs, {
+                    cwd: undefined,
+                    detached: false,
+                });
+                exiftoolProc === null || exiftoolProc === void 0 ? void 0 : exiftoolProc.stderr.on("data", (data) => {
+                    console.log("🚀 => exiftool.stderr.on => stderr.toString()", data.toString());
+                    data = data.toString();
+                    mainWindow.webContents.send(commands_1.default.UPSCAYL_PROGRESS, data.toString());
+                    exiftoolFailed = true;
+                });
+                exiftoolProc === null || exiftoolProc === void 0 ? void 0 : exiftoolProc.on("error", (data) => {
+                    mainWindow.webContents.send(commands_1.default.UPSCAYL_PROGRESS, data.toString());
+                    exiftoolFailed = true;
+                    return;
+                });
+                if (!exiftoolFailed) {
+                    exiftoolProc === null || exiftoolProc === void 0 ? void 0 : exiftoolProc.on("close", (code) => {
+                        console.log("Done upscaling");
+                        mainWindow.webContents.send(commands_1.default.UPSCAYL_DONE, isAlpha ? outFile + ".png" : outFile);
+                    });
+                }
             }
         });
     }

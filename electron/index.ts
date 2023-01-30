@@ -2,8 +2,8 @@
 import { join, parse } from "path";
 import { format } from "url";
 import { ChildProcessWithoutNullStreams, spawn } from "child_process";
+import exiftool from "@mcmics/dist-exiftool";
 import fs from "fs";
-import sizeOf from "image-size";
 import { autoUpdater } from "electron-updater";
 import getPlatform from "./getPlatform";
 import ffmpeg from "upscayl-ffmpeg";
@@ -421,14 +421,54 @@ ipcMain.on(commands.UPSCAYL, async (event, payload) => {
       return;
     });
 
-    // Send done comamnd when
+    // Send done command when
     upscayl?.on("close", (code) => {
-      if (failed !== true) {
-        console.log("Done upscaling");
-        mainWindow.webContents.send(
-          commands.UPSCAYL_DONE,
-          isAlpha ? outFile + ".png" : outFile
+      let exiftoolFailed = false;
+
+      if (!failed) {
+        // Copy all tags, including thumbnail, except resolution related tags
+        const exifArgs = [
+          "-TagsFromFile",
+          inputDir + "/" + fullfileName,
+          "-all",
+          "--*width*",
+          "--*height*",
+          "--*resolution*",
+          outFile
+        ];
+        console.log(`Copying metadata from input file to output file: '${exiftool} ${exifArgs.join(" ")}'`);
+
+        const exiftoolProc = spawn(
+          exiftool,
+          exifArgs,
+          {
+            cwd: undefined,
+            detached: false,
+          }
         );
+        exiftoolProc?.stderr.on("data", (data: string) => {
+          console.log(
+            "🚀 => exiftool.stderr.on => stderr.toString()",
+            data.toString()
+          );
+          data = data.toString();
+          mainWindow.webContents.send(commands.UPSCAYL_PROGRESS, data.toString());
+          exiftoolFailed = true;
+        });
+        exiftoolProc?.on("error", (data) => {
+          mainWindow.webContents.send(commands.UPSCAYL_PROGRESS, data.toString());
+          exiftoolFailed = true;
+          return;
+        });
+        if (!exiftoolFailed) {
+          exiftoolProc?.on("close", (code) => {
+            console.log("Done upscaling");
+            mainWindow.webContents.send(
+              commands.UPSCAYL_DONE,
+              isAlpha ? outFile + ".png" : outFile
+            );
+          })
+        }
       }
     });
   }
