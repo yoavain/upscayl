@@ -2,11 +2,11 @@
 import { join, parse } from "path";
 import { format } from "url";
 import { ChildProcessWithoutNullStreams, spawn } from "child_process";
+import exiftool from "@mcmics/dist-exiftool";
 import fs from "fs";
 import { autoUpdater } from "electron-updater";
 import getPlatform from "./getPlatform";
 import ffmpeg from "upscayl-ffmpeg";
-import os from "os";
 
 import { execPath, modelsPath } from "./binaries";
 
@@ -426,58 +426,48 @@ ipcMain.on(commands.UPSCAYL, async (event, payload) => {
       let exiftoolFailed = false;
 
       if (!failed) {
-          console.log(`Copying metadata from input file to output file: '${(execPath("exiftool"))} ${[
-            "-TagsFromFile",
-            inputDir + "/" + fullfileName,
-            outFile
-        ].join(" ")}'`);
+        // Copy all tags, including thumbnail, except resolution related tags
+        const exifArgs = [
+          "-TagsFromFile",
+          inputDir + "/" + fullfileName,
+          "-all",
+          "--*width*",
+          "--*height*",
+          "--*resolution*",
+          outFile
+        ];
+        console.log(`Copying metadata from input file to output file: '${exiftool} ${exifArgs.join(" ")}'`);
 
-        const windows = os.platform() === "win32";
-        if (windows) {
-          const exiftool = spawn(
-            execPath("exiftool"),
-            [
-              "-TagsFromFile",
-              inputDir + "/" + fullfileName,
-              outFile
-            ],
-            {
-              cwd: undefined,
-              detached: false,
-            }
-          );
-          exiftool?.stderr.on("data", (data: string) => {
-            console.log(
-              "🚀 => exiftool.stderr.on => stderr.toString()",
-              data.toString()
-            );
-            data = data.toString();
-            mainWindow.webContents.send(commands.UPSCAYL_PROGRESS, data.toString());
-            exiftoolFailed = true;
-          });
-          exiftool?.on("error", (data) => {
-            mainWindow.webContents.send(commands.UPSCAYL_PROGRESS, data.toString());
-            exiftoolFailed = true;
-            return;
-          });
-
-          if (exiftool && !exiftoolFailed) {
-            exiftool?.on("close", (code) => {
-              console.log("Done upscaling");
-              mainWindow.webContents.send(
-                commands.UPSCAYL_DONE,
-                isAlpha ? outFile + ".png" : outFile
-              );
-            })
+        const exiftoolProc = spawn(
+          exiftool,
+          exifArgs,
+          {
+            cwd: undefined,
+            detached: false,
           }
-        }
-        else {
-          // not windows
-          console.log("Done upscaling");
-          mainWindow.webContents.send(
-            commands.UPSCAYL_DONE,
-            isAlpha ? outFile + ".png" : outFile
+        );
+        exiftoolProc?.stderr.on("data", (data: string) => {
+          console.log(
+            "🚀 => exiftool.stderr.on => stderr.toString()",
+            data.toString()
           );
+          data = data.toString();
+          mainWindow.webContents.send(commands.UPSCAYL_PROGRESS, data.toString());
+          exiftoolFailed = true;
+        });
+        exiftoolProc?.on("error", (data) => {
+          mainWindow.webContents.send(commands.UPSCAYL_PROGRESS, data.toString());
+          exiftoolFailed = true;
+          return;
+        });
+        if (!exiftoolFailed) {
+          exiftoolProc?.on("close", (code) => {
+            console.log("Done upscaling");
+            mainWindow.webContents.send(
+              commands.UPSCAYL_DONE,
+              isAlpha ? outFile + ".png" : outFile
+            );
+          })
         }
       }
     });

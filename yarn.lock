@@ -223,6 +223,26 @@
     lodash "^4.17.15"
     tmp-promise "^3.0.2"
 
+"@mcmics/dist-exiftool@^12.40.0":
+  version "12.40.0"
+  resolved "https://registry.yarnpkg.com/@mcmics/dist-exiftool/-/dist-exiftool-12.40.0.tgz#bf0bd8dda5fb040ca4645abb0af9008d9f7d4d30"
+  integrity sha512-XBuVrALZgZ/GLvW1a9hHkb+UdVNErAtSZyBukxFU5y0iFuVWnmAn9ls9G9bKkvHnyT6HfeZUuuyjcUmZF6u5WA==
+  dependencies:
+    platform-dependent-modules "0.0.14"
+  optionalDependencies:
+    "@mcmics/exiftool.exe" "12.40"
+    "@mcmics/exiftool.pl" "12.40"
+
+"@mcmics/exiftool.exe@12.40":
+  version "12.40.0"
+  resolved "https://registry.yarnpkg.com/@mcmics/exiftool.exe/-/exiftool.exe-12.40.0.tgz#2db2b3710adcdbadcd8a125cad3b92f046fb35bf"
+  integrity sha512-8q+ClKj90votg/q/89/rJFICr4DDAbX9yGqkleHj3G4IJdjQK23G1LOsHz63lDYy4wAv4GyXUH3OX94GqTRDAQ==
+
+"@mcmics/exiftool.pl@12.40":
+  version "12.40.0"
+  resolved "https://registry.yarnpkg.com/@mcmics/exiftool.pl/-/exiftool.pl-12.40.0.tgz#4324c7748750ff314c0c432f3c74e93ef7b12dac"
+  integrity sha512-w+u6PA3QCbSOYAbnLGvO7yeax8WPgYgcGZt2zKFtFZnGMebZerHK7pGOynp9smfwUAAw0iehdrFNzW68/dpDDA==
+
 "@next/env@13.0.2":
   version "13.0.2"
   resolved "https://registry.yarnpkg.com/@next/env/-/env-13.0.2.tgz#5fbd7b4146175ae406edfb4a38b62de8c880c09d"
@@ -2180,6 +2200,11 @@ pify@^3.0.0:
   version "3.0.0"
   resolved "https://registry.npmjs.org/pify/-/pify-3.0.0.tgz"
   integrity sha512-C3FsVNH1udSEX48gGX1xfvwTWfsYWj5U+8/uK15BGzIGrKoUpghX8hWZwa/OFnakBiiVNmBvemTJR5mcy7iPcg==
+
+platform-dependent-modules@0.0.14:
+  version "0.0.14"
+  resolved "https://registry.yarnpkg.com/platform-dependent-modules/-/platform-dependent-modules-0.0.14.tgz#3c53d0415d81ce22dcfde15665d0cfd541d41617"
+  integrity sha512-6nOD+RSVmI5Xu1bD8DWetQ3rlgyPq4n5j5esDXn5H+J2XBTvK6t51DP/NZH5CvIlGw3VmOu+7R+WhbYoBDcNEA==
 
 plist@^3.0.1, plist@^3.0.4:
   version "3.0.6"
